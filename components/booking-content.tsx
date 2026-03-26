@@ -1,0 +1,397 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { CheckCircle2, Users, Calendar, CreditCard } from 'lucide-react'
+import { ROOMS } from '@/lib/constants'
+import { formatPrice, type Currency, DEFAULT_CURRENCY } from '@/lib/currency'
+import Link from 'next/link'
+
+export default function BookingContent({ dictionary }: { dictionary: any }) {
+  const searchParams = useSearchParams()
+  const [step, setStep] = useState(1)
+  const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
+  const [mounted, setMounted] = useState(false)
+  const [bookingData, setBookingData] = useState({
+    roomId: searchParams.get('roomId') || '',
+    checkIn: searchParams.get('checkIn') || '',
+    checkOut: searchParams.get('checkOut') || '',
+    guests: parseInt(searchParams.get('guests') || '1'),
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    cardName: '',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCVC: ''
+  })
+
+  useEffect(() => {
+    setMounted(true)
+    const saved = localStorage.getItem('currency') as Currency
+    if (saved) {
+      setCurrency(saved)
+    }
+
+    const handleCurrencyChange = (event: Event) => {
+      const customEvent = event as CustomEvent<Currency>
+      setCurrency(customEvent.detail)
+    }
+
+    window.addEventListener('currencyChanged', handleCurrencyChange)
+    return () => window.removeEventListener('currencyChanged', handleCurrencyChange)
+  }, [])
+
+  const selectedRoom = ROOMS.find(r => r.id.toString() === bookingData.roomId)
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setBookingData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleNextStep = () => {
+    if (step < 4) {
+      setStep(step + 1)
+    }
+  }
+
+  const handlePreviousStep = () => {
+    if (step > 1) {
+      setStep(step - 1)
+    }
+  }
+
+  const validateStep = (stepNum: number): boolean => {
+    switch (stepNum) {
+      case 1:
+        return !!(bookingData.roomId && bookingData.checkIn && bookingData.checkOut && bookingData.guests)
+      case 2:
+        return !!(bookingData.firstName && bookingData.lastName && bookingData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookingData.email) && bookingData.phone)
+      case 3:
+        return !!(bookingData.cardName && bookingData.cardNumber.length === 16 && bookingData.cardExpiry && bookingData.cardCVC.length === 3)
+      default:
+        return true
+    }
+  }
+
+  const handleCompleteBooking = () => {
+    if (validateStep(3)) {
+      setStep(4)
+    }
+  }
+
+  if (!mounted) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
+      {/* Header */}
+      <div className="mb-24 text-center animate-fade-in">
+        <div className="inline-block py-2 px-6 bg-primary/5 border border-primary/20 rounded-full mb-8">
+            <span className="text-xs font-bold text-primary tracking-[0.3em] uppercase italic">Reservation</span>
+        </div>
+        <h1 className="text-6xl md:text-8xl font-serif font-bold text-foreground mb-6 leading-tight">
+          {dictionary.common.booking_title}
+        </h1>
+        <p className="text-xl text-foreground/50 max-w-2xl mx-auto font-light leading-relaxed">
+          {dictionary.common.booking_subtitle}
+        </p>
+      </div>
+
+      {/* Progress Indicator */}
+      <div className="flex items-center justify-center gap-4 mb-24 animate-fade-in [animation-delay:200ms]">
+        {[1, 2, 3, 4].map((s) => (
+          <div key={s} className="flex items-center group">
+            <div
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center font-serif font-bold transition-all duration-700 shadow-sm ${
+                s <= step
+                  ? 'bg-primary text-white scale-110 rotate-3 shadow-primary/20'
+                  : 'bg-muted/50 text-foreground/30 border border-border/50'
+              }`}
+            >
+              {s < step ? <CheckCircle2 className="w-6 h-6 stroke-[2.5]" /> : <span className="text-lg">0{s}</span>}
+            </div>
+            {s < 4 && (
+              <div
+                className={`w-8 md:w-16 h-px mx-4 transition-all duration-1000 ${s < step ? 'bg-primary' : 'bg-border/30'}`}
+              ></div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Steps */}
+      <div className="bg-card border border-border/50 rounded-[3rem] p-12 md:p-16 shadow-2xl shadow-black/5 relative overflow-hidden animate-fade-in [animation-delay:400ms]">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-32 -mt-32" />
+        
+        <div className="relative z-10">
+          {/* Step 1: Room & Dates */}
+          {step >= 1 && (
+            <div className={`transition-all duration-700 ${step === 1 ? 'opacity-100' : 'opacity-40 pointer-events-none mb-12 pb-12 border-b border-border/30'}`}>
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                  {step > 1 ? '✓' : '01'}
+                </div>
+                <h2 className="text-3xl font-serif font-bold text-foreground">Room & Dates</h2>
+              </div>
+
+              {step === 1 ? (
+                <div className="space-y-10 animate-fade-in">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Arriving On</label>
+                      <input
+                        type="date"
+                        name="checkIn"
+                        value={bookingData.checkIn}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Departing On</label>
+                      <input
+                        type="date"
+                        name="checkOut"
+                        value={bookingData.checkOut}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Traveling Party Size</label>
+                    <select
+                      name="guests"
+                      value={bookingData.guests}
+                      onChange={(e) => setBookingData(prev => ({ ...prev, guests: parseInt(e.target.value) }))}
+                      className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium appearance-none"
+                    >
+                      {[1, 2, 3, 4, 5, 6, 8, 10, 12, 16].map(n => (
+                        <option key={n} value={n}>{n} Member{n > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-8 text-foreground/60 font-light">
+                  <p className="flex items-center gap-3">
+                    <Calendar className="w-5 h-5 text-primary stroke-[1.5]" />
+                    <span className="font-bold underline underline-offset-8 decoration-primary/30">{bookingData.checkIn}</span> 
+                    <span className="mx-2 text-foreground/20">/</span>
+                    <span className="font-bold underline underline-offset-8 decoration-primary/30">{bookingData.checkOut}</span>
+                  </p>
+                  <p className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-primary stroke-[1.5]" />
+                    <span className="font-bold tracking-widest uppercase text-xs">{bookingData.guests} Guest{bookingData.guests > 1 ? 's' : ''}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Guest Information */}
+          {step >= 2 && (
+            <div className={`transition-all duration-700 ${step === 2 ? 'opacity-100 animate-fade-in' : 'opacity-40 pointer-events-none' + (step > 2 ? ' mb-12 pb-12 border-b border-border/30' : '')}`}>
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                  {step > 2 ? '✓' : '02'}
+                </div>
+                <h2 className="text-3xl font-serif font-bold text-foreground">Guest Information</h2>
+              </div>
+
+              {step === 2 ? (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Given Name</label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={bookingData.firstName}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                        placeholder="e.g. Ashish"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Surname</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={bookingData.lastName}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                        placeholder="e.g. Singh"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Electronic Mail</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={bookingData.email}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                        placeholder="mail@identity.com"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Contact Number</label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={bookingData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                        placeholder="+91 . . . ."
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-8 text-foreground/60 font-light translate-x-2">
+                    <p className="font-serif font-bold text-lg text-foreground italic">{bookingData.firstName} {bookingData.lastName}</p>
+                    <span className="text-foreground/20">|</span>
+                    <p className="text-sm tracking-widest uppercase font-bold text-primary/70">{bookingData.email}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 3: Payment */}
+          {step >= 3 && (
+            <div className={`transition-all duration-700 ${step === 3 ? 'opacity-100 animate-fade-in' : 'opacity-40 pointer-events-none'}`}>
+              <div className="flex items-center gap-6 mb-12">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-sm font-bold">
+                  {step > 3 ? '✓' : '03'}
+                </div>
+                <h2 className="text-3xl font-serif font-bold text-foreground">Secure Payment</h2>
+              </div>
+
+              {step === 3 && (
+                <div className="space-y-10">
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Name on Card</label>
+                    <input
+                      type="text"
+                      name="cardName"
+                      value={bookingData.cardName}
+                      onChange={handleInputChange}
+                      className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium placeholder:opacity-20"
+                      placeholder="CARDHOLDER NAME"
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Card Identification Number</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            name="cardNumber"
+                            placeholder="0000 0000 0000 0000"
+                            value={bookingData.cardNumber}
+                            onChange={handleInputChange}
+                            className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-bold tracking-[0.4em] placeholder:opacity-20 placeholder:tracking-widest"
+                        />
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-2">
+                             <div className="w-8 h-5 bg-foreground/10 rounded-sm" />
+                             <div className="w-8 h-5 bg-primary/20 rounded-sm" />
+                        </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Validity Threshold</label>
+                      <input
+                        type="text"
+                        name="cardExpiry"
+                        placeholder="MM / YY"
+                        value={bookingData.cardExpiry}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium text-center placeholder:opacity-20"
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Security Verification</label>
+                      <input
+                        type="password"
+                        name="cardCVC"
+                        placeholder="***"
+                        value={bookingData.cardCVC}
+                        onChange={handleInputChange}
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-bold text-center tracking-[0.5em] placeholder:opacity-20"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Confirmation */}
+          {step === 4 && (
+            <div className="text-center py-20 animate-fade-in">
+              <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mx-auto mb-12 shadow-2xl shadow-primary/40 animate-bounce">
+                <CheckCircle2 className="w-12 h-12 text-white stroke-[2.5]" />
+              </div>
+              <h2 className="text-5xl md:text-7xl font-serif font-bold text-foreground mb-8 leading-tight">
+                Booking <br /><span className="text-primary italic">Refined & Confirmed</span>
+              </h2>
+              <div className="h-px w-24 bg-primary/20 mx-auto mb-12" />
+              <p className="text-xl text-foreground/50 max-w-xl mx-auto font-light leading-relaxed mb-16">
+                Thank you for choosing Shri Ganesh Residency. A confirmation of your upcoming stay has been dispatched to <span className="text-primary font-bold">{bookingData.email}</span>. We await your arrival with anticipation.
+              </p>
+              <button asChild className="luxury-button bg-primary text-white hover:bg-black transition-all duration-700 px-16 h-18 text-xs font-bold uppercase tracking-[0.4em] rounded-[1.5rem]">
+                <Link href="/">Return to Grand Lobby</Link>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation Buttons */}
+      {step < 4 && (
+        <div className="flex flex-col md:flex-row gap-8 mt-16 items-center justify-between animate-fade-in [animation-delay:600ms]">
+          <button
+            onClick={handlePreviousStep}
+            disabled={step === 1}
+            className="w-full md:w-auto px-12 h-16 border border-border/50 text-foreground/40 text-[10px] font-bold uppercase tracking-[0.3em] rounded-[1.5rem] hover:bg-black hover:text-white hover:border-black disabled:opacity-0 transition-all duration-700"
+          >
+            Previous Stage
+          </button>
+
+          <div className="flex flex-col md:flex-row items-center gap-12 w-full md:w-auto">
+            {selectedRoom && step < 3 && (
+              <div className="text-center md:text-right">
+                <h4 className="text-[10px] font-bold text-foreground/30 uppercase tracking-[0.2em] mb-1">Current Selection</h4>
+                <p className="text-lg font-serif font-bold text-foreground italic flex items-center gap-2">
+                  {selectedRoom.name} <span className="text-primary">•</span> {formatPrice(selectedRoom.price, currency)} <span className="text-[10px] font-bold text-foreground/20 uppercase">/ night</span>
+                </p>
+              </div>
+            )}
+            
+            {step < 3 ? (
+              <button
+                onClick={handleNextStep}
+                className="w-full md:w-auto px-16 h-20 bg-primary hover:bg-black text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.4em] shadow-2xl shadow-primary/20 hover:shadow-black/20 active:scale-[0.98] transition-all duration-700"
+              >
+                Proceed to Security
+              </button>
+            ) : (
+              <button
+                onClick={handleCompleteBooking}
+                className="w-full md:w-auto px-16 h-20 bg-primary hover:bg-black text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.4em] shadow-2xl shadow-primary/20 hover:shadow-black/20 active:scale-[0.98] transition-all duration-700 flex items-center justify-center gap-6"
+              >
+                <CreditCard className="w-6 h-6 stroke-[1.5]" />
+                Authorize Reservation
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

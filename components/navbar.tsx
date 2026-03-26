@@ -1,0 +1,68 @@
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import CurrencySelector from './currency-selector'
+import MobileMenu from './mobile-menu'
+import { HOTEL_INFO } from '@/lib/constants'
+
+interface NavbarProps {
+  dictionary: any
+}
+
+export default function Navbar({ dictionary }: NavbarProps) {
+  const navLinks = [
+    { label: dictionary.common.home, href: '/' },
+    { label: dictionary.common.rooms, href: '/rooms' },
+    { label: dictionary.common.about, href: '/about' },
+    { label: dictionary.common.gallery, href: '/gallery' },
+    { label: dictionary.common.contact, href: '/contact' },
+  ]
+
+  return (
+    <nav className="sticky top-0 z-50 glass-effect border-b border-border/40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-24">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-4 group transition-transform active:scale-95">
+            <div className="relative w-12 h-12 rounded-2xl bg-primary flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20">
+              <span className="text-white font-serif font-bold text-xl relative z-10 tracking-tighter">SG</span>
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-serif font-bold text-xl tracking-tight text-foreground leading-none mb-1 uppercase italic">{HOTEL_INFO.name}</span>
+              <span className="text-[10px] font-bold text-primary tracking-[0.3em] uppercase opacity-70 leading-none">{HOTEL_INFO.tagline}</span>
+            </div>
+          </Link>
+
+          {/* Desktop Menu */}
+          <div className="hidden lg:flex items-center gap-10">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-foreground/70 hover:text-primary transition-colors duration-300 font-medium text-xs uppercase tracking-[0.2em] relative group py-2"
+              >
+                {link.label}
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-[width] duration-300 rounded-full opacity-50"></span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 sm:gap-6">
+            <div className="hidden md:block">
+              <CurrencySelector />
+            </div>
+            
+            <Button asChild className="hidden sm:inline-flex luxury-button bg-primary hover:bg-primary/90 text-white px-8 py-4 h-auto text-[10px] rounded-full">
+              <Link href="/booking">{dictionary.common.book_now}</Link>
+            </Button>
+
+            {/* Mobile Menu (Client Component) */}
+            <MobileMenu navLinks={navLinks} dictionary={dictionary} />
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}
+

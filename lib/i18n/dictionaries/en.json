@@ -1,0 +1,43 @@
+{
+  "common": {
+    "hotel_name": "Shri Ganesh Residency",
+    "book_now": "Book Now",
+    "discover_luxury": "Discover True Hospitality",
+    "welcome": "Welcome to Shri Ganesh Residency",
+    "home": "Home",
+    "rooms": "Rooms",
+    "about": "About",
+    "gallery": "Gallery",
+    "contact": "Contact",
+    "admin": "Admin",
+    "booking_title": "Complete Your Booking",
+    "booking_subtitle": "Secure your luxury experience in just a few steps",
+    "return_home": "Return to Home",
+    "explore_rooms": "Explore Rooms",
+    "contact_us": "Contact Us",
+    "room_types": "Room Types",
+    "total_rooms": "Total Rooms",
+    "max_guests": "Max Guests",
+    "home_title": "Welcome Home",
+    "home_subtitle": "Experience comfortable hospitality at Shri Ganesh Residency. Choose from our diverse room options and enjoy warm, personalized service.",
+    "amenities_title": "Essential Amenities",
+    "amenities_subtitle": "Comfortable facilities and services designed for your convenience and comfort",
+    "iconic_title": "Iconic Accommodations",
+    "iconic_subtitle": "Each room is a sanctuary of comfort, designed with meticulous attention to detail and luxury finishes",
+    "view_all_rooms": "View All Rooms",
+    "testimonials_title": "Guest Experiences",
+    "testimonials_subtitle": "Real stories from our beloved guests about their stay at Shri Ganesh Residency",
+    "rooms_title": "Our Rooms",
+    "rooms_subtitle": "Discover our collection of meticulously designed accommodations",
+    "gallery_title": "Gallery",
+    "gallery_subtitle": "Explore the comfort and elegance of Shri Ganesh Residency",
+    "contact_title": "Contact Us",
+    "contact_subtitle": "Get in touch with us for any inquiries or special requests"
+  },
+  "contact": {
+    "title": "Get In Touch",
+    "subtitle": "Experience the warmth of our hospitality.",
+    "form_name": "Full Name",
+    "form_email": "Email Address"
+  }
+}
