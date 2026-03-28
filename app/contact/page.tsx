@@ -1,17 +1,16 @@
 import LayoutWrapper from '../layout-wrapper'
 import Image from 'next/image'
-import { Button } from '@/components/ui/button'
 import { Phone, Mail, MapPin, Clock, MessageSquare, ExternalLink } from 'lucide-react'
 import { HOTEL_INFO } from '@/lib/constants'
 import { constructMetadata } from '@/lib/seo/metadata'
 import Breadcrumbs from '@/components/breadcrumb'
+import { getDictionary } from '@/lib/i18n/get-dictionary'
+import ContactForm from '@/components/contact-form'
 
 export const metadata = constructMetadata({
   title: 'Contact Us',
   description: 'Get in touch with Sri Ganesh Residency. Reach out for booking inquiries, travel assistance, or general information about our accommodations.',
 })
-
-import { getDictionary } from '@/lib/i18n/get-dictionary'
 
 export default async function ContactPage() {
   const dictionary = await getDictionary('en')
@@ -90,50 +89,7 @@ export default async function ContactPage() {
                 </p>
               </div>
               
-              <form 
-                className="grid grid-cols-1 md:grid-cols-2 gap-8" 
-                method="POST" 
-                action="https://formspree.io/f/YOUR_FORM_ID"
-              >
-                <div className="space-y-3">
-                  <label className="text-[9px] font-bold text-foreground/80 uppercase tracking-[0.3em] ml-2">Full Identity</label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    className="w-full px-6 py-4 rounded-2xl border border-border/60 bg-background focus:ring-4 focus:ring-primary/5 transition-[border-color,background-color] duration-300 outline-none text-foreground font-bold placeholder:text-foreground/70"
-                    placeholder="E.g. Ashish Singh"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[9px] font-bold text-foreground/80 uppercase tracking-[0.3em] ml-2">Digital Contact</label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    className="w-full px-6 py-4 rounded-2xl border border-border/60 bg-background focus:ring-4 focus:ring-primary/5 transition-[border-color,background-color] duration-300 outline-none text-foreground font-bold placeholder:text-foreground/70"
-                    placeholder="E.g. ashish@residency.com"
-                  />
-                </div>
-
-                <div className="md:col-span-2 space-y-3">
-                  <label className="text-[9px] font-bold text-foreground/80 uppercase tracking-[0.3em] ml-2">Nature of Request</label>
-                  <textarea
-                    name="message"
-                    required
-                    rows={8}
-                    className="w-full px-6 py-5 rounded-[2rem] border border-border/60 bg-background focus:ring-4 focus:ring-primary/5 transition-[border-color,background-color] duration-300 outline-none resize-none text-foreground font-bold leading-relaxed placeholder:text-foreground/70"
-                    placeholder="Please detail your requirements or specific questions..."
-                  />
-                </div>
-
-                <div className="md:col-span-2 pt-4">
-                  <Button type="submit" className="luxury-button w-full h-16 bg-primary hover:bg-black text-white rounded-2xl font-bold text-[10px] uppercase tracking-[0.3em] shadow-none gpu-accel">
-                    Submit Formal Inquiry
-                  </Button>
-                </div>
-              </form>
+              <ContactForm />
             </div>
 
             {/* Geographical & Administrative Column */}

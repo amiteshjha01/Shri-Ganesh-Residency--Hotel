@@ -1,6 +1,6 @@
-  'use client'
+'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import RoomFilter from '@/components/room-filter'
 import RoomCard from '@/components/room-card'
 import Image from 'next/image'
@@ -16,6 +16,8 @@ interface Room {
   image?: string
   images?: string[]
   video?: string
+  available?: number
+  total?: number
 }
 
 interface FilterState {
@@ -32,11 +34,32 @@ interface RoomsContentProps {
 import Breadcrumbs from '@/components/breadcrumb'
 
 export default function RoomsContent({ rooms, dictionary }: RoomsContentProps) {
+  const [localAvailability, setLocalAvailability] = useState<Record<string, number>>({})
   const [filters, setFilters] = useState<FilterState>({
     type: [],
     priceRange: [100, 10000],
     guests: 0
   })
+
+  // Sync availability from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('sgr_room_availability')
+    if (saved) {
+      try {
+        setLocalAvailability(JSON.parse(saved))
+      } catch (e) {
+        console.error('Failed to parse availability')
+      }
+    }
+
+    const handleUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<Record<string, number>>
+      setLocalAvailability(customEvent.detail)
+    }
+
+    window.addEventListener('roomAvailabilityChanged', handleUpdate)
+    return () => window.removeEventListener('roomAvailabilityChanged', handleUpdate)
+  }, [])
 
   const filteredRooms = useMemo(() => {
     return rooms.filter(room => {
@@ -113,11 +136,21 @@ export default function RoomsContent({ rooms, dictionary }: RoomsContentProps) {
                   <div className="h-px flex-grow mx-8 bg-border/40 scale-x-0 group-hover:scale-x-100 transition-transform duration-1000 origin-left" />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12 gpu-accel">
-                  {filteredRooms.map((room, idx) => (
-                    <div key={room.id} className="animate-fade-in [animation-delay:calc(idx*100ms+1200ms)] gpu-accel">
-                      <RoomCard {...room} />
-                    </div>
-                  ))}
+                  {filteredRooms.map((room, idx) => {
+                    const roomKey = room.id === 1 ? 'deluxe' : 
+                                  room.id === 2 ? 'doubleDeluxe' : 
+                                  room.id === 3 ? 'room10' : 'room16'
+                    
+                    const available = localAvailability[roomKey] !== undefined 
+                      ? localAvailability[roomKey] 
+                      : room.available
+
+                    return (
+                      <div key={room.id} className="animate-fade-in [animation-delay:calc(idx*100ms+1200ms)] gpu-accel">
+                        <RoomCard {...room} available={available} />
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             ) : (

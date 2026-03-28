@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Users, Wind, Heart, Star } from 'lucide-react'
+import { Users, Wind, Heart, Star, Box } from 'lucide-react'
 import { formatPrice, type Currency, DEFAULT_CURRENCY } from '@/lib/currency'
+import { cn } from '@/lib/utils'
 
 interface RoomCardProps {
   id: number
@@ -16,9 +17,11 @@ interface RoomCardProps {
   guests: number
   amenities: string[]
   image?: string
+  available?: number
+  total?: number
 }
 
-export default function RoomCard({ id, slug, name, category, price, guests, amenities, image }: RoomCardProps) {
+export default function RoomCard({ id, slug, name, category, price, guests, amenities, image, available, total }: RoomCardProps) {
   const [currency, setCurrency] = useState<Currency>(DEFAULT_CURRENCY)
   const [mounted, setMounted] = useState(false)
 
@@ -70,7 +73,7 @@ export default function RoomCard({ id, slug, name, category, price, guests, amen
           {name}
         </h3>
 
-        <div className="flex items-center gap-5 text-[10px] font-bold text-muted-foreground mb-8 uppercase tracking-[0.2em]">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-[10px] font-bold text-muted-foreground mb-8 uppercase tracking-[0.2em]">
           <div className="flex items-center gap-2">
             <Users className="w-3.5 h-3.5" />
             <span>{guests} Guests</span>
@@ -80,6 +83,16 @@ export default function RoomCard({ id, slug, name, category, price, guests, amen
             <Wind className="w-3.5 h-3.5" />
             <span>A/C Room</span>
           </div>
+          
+          {available !== undefined && (
+            <>
+              <div className="w-1.5 h-1.5 rounded-full bg-border" />
+              <div className={cn("flex items-center gap-2", available === 0 ? "text-destructive" : "text-primary")}>
+                <Box className="w-3.5 h-3.5" />
+                <span>{available === 0 ? "Fully Booked" : `Available: ${available} Rooms`}</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-4 mb-10 shrink-0">
