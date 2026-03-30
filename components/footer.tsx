@@ -18,13 +18,13 @@ export default function Footer({ dictionary }: FooterProps) {
           {/* Brand */}
           <div className="space-y-8">
             <Link href="/" className="flex flex-col gap-4 group">
-              <div className="relative h-[70px] w-auto inline-flex items-center">
+              <div className="relative flex items-center">
                 <Image
                   src="/footer logo.png"
                   alt={HOTEL_INFO.name}
-                  width={180}
-                  height={70}
-                  className="h-[70px] w-auto object-contain object-left"
+                  width={150}
+                  height={150}
+                  className="h-24 w-auto object-contain"
                 />
               </div>
               <div className="flex flex-col">
@@ -32,7 +32,7 @@ export default function Footer({ dictionary }: FooterProps) {
                 <span className="text-[10px] font-black text-primary tracking-[0.4em] uppercase opacity-90 leading-none mt-1">{HOTEL_INFO.tagline}</span>
               </div>
             </Link>
-            <p className="text-sm text-background/80 font-light leading-relaxed max-w-xs">{HOTEL_INFO.description}</p>
+            <p className="text-sm text-background/90 font-light leading-relaxed max-w-xs">{HOTEL_INFO.description}</p>
           </div>
 
           {/* Quick Links */}
@@ -41,7 +41,7 @@ export default function Footer({ dictionary }: FooterProps) {
             <ul className="space-y-4">
               {['Rooms', 'About', 'Gallery', 'Contact'].map((item) => (
                 <li key={item}>
-                  <Link href={`/${item.toLowerCase()}`} className="text-sm text-background/80 hover:text-primary transition-[color,transform] duration-300 hover:translate-x-1 inline-block">
+                  <Link href={`/${item.toLowerCase()}`} className="text-sm text-background/90 hover:text-primary transition-[color,transform] duration-300 hover:translate-x-1 inline-block">
                     {item}
                   </Link>
                 </li>
@@ -58,8 +58,8 @@ export default function Footer({ dictionary }: FooterProps) {
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-background/70 uppercase tracking-widest mb-1">Our Location</p>
-                  <a href={HOTEL_INFO.location} target="_blank" rel="noopener noreferrer" className="text-sm text-background/80 hover:text-primary transition-colors">Tirupati, Andhra Pradesh</a>
+                  <p className="text-[10px] font-bold text-background/80 uppercase tracking-widest mb-1">Our Location</p>
+                  <a href={HOTEL_INFO.location} target="_blank" rel="noopener noreferrer" className="text-sm text-background/90 hover:text-primary transition-colors">Tirupati, Andhra Pradesh</a>
                 </div>
               </li>
               <li className="flex items-start gap-4 group">
@@ -67,8 +67,8 @@ export default function Footer({ dictionary }: FooterProps) {
                   <Phone className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-background/70 uppercase tracking-widest mb-1">Call Us</p>
-                  <a href={`tel:${HOTEL_INFO.phone}`} className="text-sm text-background/80 hover:text-primary transition-colors">{HOTEL_INFO.phone}</a>
+                  <p className="text-[10px] font-bold text-background/80 uppercase tracking-widest mb-1">Call Us</p>
+                  <a href={`tel:${HOTEL_INFO.phone}`} className="text-sm text-background/90 hover:text-primary transition-colors">{HOTEL_INFO.phone}</a>
                 </div>
               </li>
             </ul>
@@ -80,10 +80,10 @@ export default function Footer({ dictionary }: FooterProps) {
 
         {/* Bottom Section */}
         <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-          <p className="text-xs text-background/70 font-medium tracking-widest uppercase">&copy; {new Date().getFullYear()} {HOTEL_INFO.name}. Crafted with precision.</p>
+          <p className="text-xs text-background/90 font-medium tracking-widest uppercase">&copy; {new Date().getFullYear()} {HOTEL_INFO.name}. Crafted with precision.</p>
           <div className="flex gap-10">
             {['Privacy Policy', 'Terms of Service', 'Cookie Settings'].map((item) => (
-              <Link key={item} href="#" className="text-[10px] text-background/60 hover:text-primary transition-colors uppercase font-bold tracking-widest">{item}</Link>
+              <Link key={item} href="#" className="text-[10px] text-background/80 hover:text-primary transition-colors uppercase font-bold tracking-widest">{item}</Link>
             ))}
           </div>
         </div>

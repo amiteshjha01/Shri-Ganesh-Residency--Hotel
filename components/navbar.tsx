@@ -24,13 +24,13 @@ export default function Navbar({ dictionary }: NavbarProps) {
         <div className="flex justify-between items-center h-24">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-4 group transition-all active:scale-95 py-2">
-            <div className="relative h-[48px] min-w-[48px] flex items-center">
+            <div className="relative flex items-center">
               <Image
                 src="/logo.png"
                 alt={HOTEL_INFO.name}
-                width={130}
-                height={48}
-                className="h-[48px] w-auto object-contain object-left transition-all duration-500 group-hover:scale-105"
+                width={180}
+                height={180}
+                className="h-20 w-auto object-contain transition-all duration-500 group-hover:scale-110"
                 priority
               />
             </div>

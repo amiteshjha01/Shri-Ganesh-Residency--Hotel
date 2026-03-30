@@ -18,8 +18,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
     checkIn: searchParams.get('checkIn') || '',
     checkOut: searchParams.get('checkOut') || '',
     guests: parseInt(searchParams.get('guests') || '1'),
-    firstName: '',
-    lastName: '',
+    name: '',
     email: '',
     phone: '',
     cardName: '',
@@ -27,6 +26,9 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
     cardExpiry: '',
     cardCVC: ''
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [roomStatus, setRoomStatus] = useState<any>(null)
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -44,6 +46,19 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
     return () => window.removeEventListener('currencyChanged', handleCurrencyChange)
   }, [])
 
+  useEffect(() => {
+    if (bookingData.roomId) {
+      fetch(`/api/rooms`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const current = data.rooms.find((r: any) => r.roomId === bookingData.roomId.toString())
+            setRoomStatus(current)
+          }
+        })
+    }
+  }, [bookingData.roomId])
+
   const selectedRoom = ROOMS.find(r => r.id.toString() === bookingData.roomId)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,7 +66,38 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
     setBookingData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleNextStep = () => {
+  const validateStep = (stepNum: number): boolean => {
+    switch (stepNum) {
+      case 1:
+        return !!(bookingData.roomId && bookingData.checkIn && bookingData.checkOut && bookingData.guests)
+      case 2:
+        return !!(bookingData.name && bookingData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookingData.email) && bookingData.phone)
+      case 3:
+        return !!(bookingData.cardName && bookingData.cardNumber.length === 16 && bookingData.cardExpiry && bookingData.cardCVC.length === 3)
+      default:
+        return true
+    }
+  }
+
+  const handleNextStep = async () => {
+    if (step === 1 && validateStep(1)) {
+      setCheckingAvailability(true)
+      try {
+        const response = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...bookingData, totalAmount: 1000 }), // Test amount
+        })
+        const result = await response.json()
+        if (response.status === 400 && result.message.includes('unavailable')) {
+           alert(result.message)
+           setCheckingAvailability(false)
+           return
+        }
+      } catch (e) {}
+      setCheckingAvailability(false)
+    }
+
     if (step < 4) {
       setStep(step + 1)
     }
@@ -63,24 +109,42 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
     }
   }
 
-  const validateStep = (stepNum: number): boolean => {
-    switch (stepNum) {
-      case 1:
-        return !!(bookingData.roomId && bookingData.checkIn && bookingData.checkOut && bookingData.guests)
-      case 2:
-        return !!(bookingData.firstName && bookingData.lastName && bookingData.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookingData.email) && bookingData.phone)
-      case 3:
-        return !!(bookingData.cardName && bookingData.cardNumber.length === 16 && bookingData.cardExpiry && bookingData.cardCVC.length === 3)
-      default:
-        return true
+  const handleCompleteBooking = async () => {
+    if (validateStep(3)) {
+      setIsSubmitting(true)
+      try {
+        const response = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...bookingData,
+            roomName: selectedRoom?.name,
+            totalAmount: totalAmount,
+            tokenAmount: 500,
+            remainingAmount: totalAmount - 500,
+          }),
+        })
+
+        if (response.ok) {
+          setStep(4)
+        } else {
+          const error = await response.json()
+          alert(error.message || 'Something went wrong. Please try again.')
+        }
+      } catch (err) {
+        alert('Failed to connect to the server. Please try again later.')
+      } finally {
+        setIsSubmitting(false)
+      }
     }
   }
 
-  const handleCompleteBooking = () => {
-    if (validateStep(3)) {
-      setStep(4)
-    }
-  }
+  const checkInDate = bookingData.checkIn ? new Date(bookingData.checkIn) : null
+  const checkOutDate = bookingData.checkOut ? new Date(bookingData.checkOut) : null
+  const nights = checkInDate && checkOutDate && checkOutDate > checkInDate 
+    ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 0
+  const totalAmount = selectedRoom ? selectedRoom.price * (nights || 1) : 0
 
   if (!mounted) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
 
@@ -94,7 +158,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
         <h1 className="text-6xl md:text-8xl font-serif font-bold text-foreground mb-6 leading-tight">
           {dictionary.common.booking_title}
         </h1>
-        <p className="text-xl text-foreground/50 max-w-2xl mx-auto font-light leading-relaxed">
+        <p className="text-xl text-foreground/80 max-w-2xl mx-auto font-light leading-relaxed">
           {dictionary.common.booking_subtitle}
         </p>
       </div>
@@ -107,7 +171,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
               className={`w-14 h-14 rounded-2xl flex items-center justify-center font-serif font-bold transition-all duration-700 shadow-sm ${
                 s <= step
                   ? 'bg-primary text-white scale-110 rotate-3 shadow-primary/20'
-                  : 'bg-muted/50 text-foreground/30 border border-border/50'
+                  : 'bg-muted/50 text-foreground/60 border border-border/50'
               }`}
             >
               {s < step ? <CheckCircle2 className="w-6 h-6 stroke-[2.5]" /> : <span className="text-lg">0{s}</span>}
@@ -140,7 +204,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                 <div className="space-y-10 animate-fade-in">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Arriving On</label>
+                      <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Arriving On</label>
                       <input
                         type="date"
                         name="checkIn"
@@ -150,7 +214,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                       />
                     </div>
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Departing On</label>
+                      <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Departing On</label>
                       <input
                         type="date"
                         name="checkOut"
@@ -161,7 +225,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Traveling Party Size</label>
+                    <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Traveling Party Size</label>
                     <select
                       name="guests"
                       value={bookingData.guests}
@@ -173,13 +237,20 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                       ))}
                     </select>
                   </div>
+                  {roomStatus && (roomStatus.availableRooms <= 0 || !roomStatus.isAvailable) && (
+                    <div className="bg-destructive/10 border border-destructive/20 p-6 rounded-2xl">
+                      <p className="text-destructive font-bold text-sm tracking-wide">
+                         This room category is currently fully booked or unavailable for the selected dates.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-8 text-foreground/60 font-light">
+                <div className="flex flex-wrap gap-8 text-foreground/90 font-light">
                   <p className="flex items-center gap-3">
                     <Calendar className="w-5 h-5 text-primary stroke-[1.5]" />
                     <span className="font-bold underline underline-offset-8 decoration-primary/30">{bookingData.checkIn}</span> 
-                    <span className="mx-2 text-foreground/20">/</span>
+                    <span className="mx-2 text-foreground/50">/</span>
                     <span className="font-bold underline underline-offset-8 decoration-primary/30">{bookingData.checkOut}</span>
                   </p>
                   <p className="flex items-center gap-3">
@@ -203,33 +274,20 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
 
               {step === 2 ? (
                 <div className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Given Name</label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={bookingData.firstName}
-                        onChange={handleInputChange}
-                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
-                        placeholder="e.g. Ashish"
-                      />
-                    </div>
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Surname</label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={bookingData.lastName}
-                        onChange={handleInputChange}
-                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
-                        placeholder="e.g. Singh"
-                      />
-                    </div>
+                  <div className="space-y-4">
+                    <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Full Identity (Name)</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={bookingData.name}
+                      onChange={handleInputChange}
+                      className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium"
+                      placeholder="e.g. Ashish Singh"
+                    />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Electronic Mail</label>
+                      <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Electronic Mail</label>
                       <input
                         type="email"
                         name="email"
@@ -240,7 +298,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                       />
                     </div>
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Contact Number</label>
+                      <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Contact Number</label>
                       <input
                         type="tel"
                         name="phone"
@@ -253,9 +311,9 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-8 text-foreground/60 font-light translate-x-2">
-                    <p className="font-serif font-bold text-lg text-foreground italic">{bookingData.firstName} {bookingData.lastName}</p>
-                    <span className="text-foreground/20">|</span>
+                <div className="flex flex-wrap gap-8 text-foreground/90 font-light translate-x-2">
+                    <p className="font-serif font-bold text-lg text-foreground italic">{bookingData.name}</p>
+                    <span className="text-foreground/50">|</span>
                     <p className="text-sm tracking-widest uppercase font-bold text-primary/70">{bookingData.email}</p>
                 </div>
               )}
@@ -274,19 +332,28 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
 
               {step === 3 && (
                 <div className="space-y-10">
+                  <div className="bg-primary/20 border-2 border-primary/50 p-10 rounded-[2rem] mb-12 shadow-xl shadow-primary/10 animate-pulse-subtle">
+                     <p className="text-primary font-black text-base sm:text-lg tracking-wide leading-relaxed italic">
+                       ✨ Pay only ₹500 now to secure your reservation. <br />
+                       <span className="text-foreground/90 not-italic font-bold text-sm block mt-2 opacity-80 uppercase tracking-widest">
+                         The remaining balance will be settled at the hotel reception during check-in.
+                       </span>
+                     </p>
+                  </div>
+
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Name on Card</label>
+                    <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Name on Card</label>
                     <input
                       type="text"
                       name="cardName"
                       value={bookingData.cardName}
                       onChange={handleInputChange}
-                      className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium placeholder:opacity-20"
+                      className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium placeholder:opacity-50"
                       placeholder="CARDHOLDER NAME"
                     />
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Card Identification Number</label>
+                    <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Card Identification Number</label>
                     <div className="relative">
                         <input
                             type="text"
@@ -294,7 +361,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                             placeholder="0000 0000 0000 0000"
                             value={bookingData.cardNumber}
                             onChange={handleInputChange}
-                            className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-bold tracking-[0.4em] placeholder:opacity-20 placeholder:tracking-widest"
+                            className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-bold tracking-[0.4em] placeholder:opacity-50 placeholder:tracking-widest"
                         />
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 flex gap-2">
                              <div className="w-8 h-5 bg-foreground/10 rounded-sm" />
@@ -304,25 +371,25 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                   </div>
                   <div className="grid grid-cols-2 gap-8">
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Validity Threshold</label>
+                      <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Validity Threshold</label>
                       <input
                         type="text"
                         name="cardExpiry"
                         placeholder="MM / YY"
                         value={bookingData.cardExpiry}
                         onChange={handleInputChange}
-                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium text-center placeholder:opacity-20"
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-medium text-center placeholder:opacity-50"
                       />
                     </div>
                     <div className="space-y-4">
-                      <label className="text-[10px] font-bold text-foreground/40 uppercase tracking-[0.2em] ml-2">Security Verification</label>
+                      <label className="text-[11px] font-bold text-foreground/90 uppercase tracking-[0.2em] ml-2">Security Verification</label>
                       <input
                         type="password"
                         name="cardCVC"
                         placeholder="***"
                         value={bookingData.cardCVC}
                         onChange={handleInputChange}
-                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-bold text-center tracking-[0.5em] placeholder:opacity-20"
+                        className="w-full px-8 py-5 rounded-[1.5rem] border border-border/60 bg-muted/30 focus:bg-background focus:ring-4 focus:ring-primary/5 focus:border-primary/40 transition-all duration-500 outline-none text-foreground font-bold text-center tracking-[0.5em] placeholder:opacity-50"
                       />
                     </div>
                   </div>
@@ -341,9 +408,16 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
                 Booking <br /><span className="text-primary italic">Refined & Confirmed</span>
               </h2>
               <div className="h-px w-24 bg-primary/20 mx-auto mb-12" />
-              <p className="text-xl text-foreground/50 max-w-xl mx-auto font-light leading-relaxed mb-16">
-                Thank you for choosing Sri Ganesh Residency. A confirmation of your upcoming stay has been dispatched to <span className="text-primary font-bold">{bookingData.email}</span>. We await your arrival with anticipation.
-              </p>
+              <div className="space-y-6 mb-16">
+                <p className="text-xl text-foreground/80 max-w-xl mx-auto font-light leading-relaxed">
+                  Thank you for choosing Sri Ganesh Residency. A confirmation of your upcoming stay has been dispatched to <span className="text-primary font-bold">{bookingData.email}</span>.
+                </p>
+                <div className="inline-block py-4 px-8 bg-primary/10 rounded-2xl border border-primary/30">
+                  <p className="text-primary font-bold text-sm">
+                    ⚠️ Pay only ₹500 to confirm your booking. <br /> Remaining amount will be paid at the hotel during check-in.
+                  </p>
+                </div>
+              </div>
               <Button asChild className="luxury-button bg-primary text-white hover:bg-black transition-all duration-700 px-16 h-18 text-xs font-bold uppercase tracking-[0.4em] rounded-[1.5rem]">
                 <Link href="/">Return to Grand Lobby</Link>
               </Button>
@@ -358,7 +432,7 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
           <button
             onClick={handlePreviousStep}
             disabled={step === 1}
-            className="w-full md:w-auto px-12 h-16 border border-border/50 text-foreground/40 text-[10px] font-bold uppercase tracking-[0.3em] rounded-[1.5rem] hover:bg-black hover:text-white hover:border-black disabled:opacity-0 transition-all duration-700"
+            className="w-full md:w-auto px-12 h-16 border border-border/50 text-foreground/90 text-[10px] font-bold uppercase tracking-[0.3em] rounded-[1.5rem] hover:bg-black hover:text-white hover:border-black disabled:opacity-0 transition-all duration-700"
           >
             Previous Stage
           </button>
@@ -366,27 +440,32 @@ export default function BookingContent({ dictionary }: { dictionary: any }) {
           <div className="flex flex-col md:flex-row items-center gap-12 w-full md:w-auto">
             {selectedRoom && step < 3 && (
               <div className="text-center md:text-right">
-                <h4 className="text-[10px] font-bold text-foreground/30 uppercase tracking-[0.2em] mb-1">Current Selection</h4>
+                <h4 className="text-[10px] font-bold text-primary uppercase tracking-[0.3em] mb-1">Guaranteed Reservation</h4>
                 <p className="text-lg font-serif font-bold text-foreground italic flex items-center gap-2">
-                  {selectedRoom.name} <span className="text-primary">•</span> {formatPrice(selectedRoom.price, currency)} <span className="text-[10px] font-bold text-foreground/20 uppercase">/ night</span>
+                  {selectedRoom.name} <span className="text-primary">•</span> {formatPrice(selectedRoom.price, currency)} <span className="text-[10px] font-bold text-foreground/50 uppercase">/ night</span>
                 </p>
+                <div className="mt-2 text-right">
+                  <p className="text-xs font-black text-primary uppercase tracking-widest bg-primary/10 px-4 py-2 rounded-xl border border-primary/20 inline-block">Pay only ₹500 to confirm.</p>
+                </div>
               </div>
             )}
             
             {step < 3 ? (
               <button
                 onClick={handleNextStep}
-                className="w-full md:w-auto px-16 h-20 bg-primary hover:bg-black text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.4em] shadow-2xl shadow-primary/20 hover:shadow-black/20 active:scale-[0.98] transition-all duration-700"
+                disabled={checkingAvailability || (roomStatus && (roomStatus.availableRooms <= 0 || !roomStatus.isAvailable))}
+                className="w-full md:w-auto px-16 h-20 bg-primary hover:bg-black text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.4em] shadow-2xl shadow-primary/20 hover:shadow-black/20 active:scale-[0.98] transition-all duration-700 disabled:opacity-50"
               >
-                Proceed to Security
+                {checkingAvailability ? 'Verifying...' : 'Proceed to Security'}
               </button>
             ) : (
               <button
                 onClick={handleCompleteBooking}
-                className="w-full md:w-auto px-16 h-20 bg-primary hover:bg-black text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.4em] shadow-2xl shadow-primary/20 hover:shadow-black/20 active:scale-[0.98] transition-all duration-700 flex items-center justify-center gap-6"
+                disabled={isSubmitting}
+                className="w-full md:w-auto px-16 h-20 bg-primary hover:bg-black text-white rounded-[1.5rem] font-bold text-xs uppercase tracking-[0.4em] shadow-2xl shadow-primary/20 hover:shadow-black/20 active:scale-[0.98] transition-all duration-700 flex items-center justify-center gap-6 disabled:opacity-50"
               >
                 <CreditCard className="w-6 h-6 stroke-[1.5]" />
-                Authorize Reservation
+                {isSubmitting ? 'Authenticating...' : 'Authorize Reservation'}
               </button>
             )}
           </div>

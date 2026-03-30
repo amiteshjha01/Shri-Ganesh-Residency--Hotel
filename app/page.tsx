@@ -4,6 +4,7 @@ import AmenitiesSection from '@/components/amenities-section'
 import Testimonials from '@/components/testimonials'
 import GalleryPreview from '@/components/gallery-preview'
 import LocationSection from '@/components/location-section'
+import MapSection from '@/components/map-section'
 import { constructMetadata } from '@/lib/seo/metadata'
 import LayoutWrapper from './layout-wrapper'
 
@@ -22,6 +23,7 @@ export default async function Home() {
         <AmenitiesSection dictionary={dictionary} />
         <Testimonials dictionary={dictionary} />
         <GalleryPreview />
+        <MapSection />
         <LocationSection />
       </main>
     </LayoutWrapper>

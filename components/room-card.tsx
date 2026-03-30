@@ -111,6 +111,7 @@ export default function RoomCard({ id, slug, name, category, price, guests, amen
               {formatPrice(price, currency)}
               <span className="text-[10px] font-medium text-foreground/70 uppercase tracking-widest">/ Night</span>
             </p>
+            <p className="text-[9px] font-bold text-primary/60 uppercase tracking-widest mt-1 italic">₹500 Token to Confirm</p>
           </div>
           
           <Button asChild className="luxury-button bg-primary text-white hover:bg-black px-6 py-4 rounded-2xl h-auto border-none shadow-lg shadow-primary/20">
