@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
+
+export const dynamic = 'force-dynamic'
 import Booking from '@/lib/models/Booking';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
+import connectDB from '@/lib/mongodb';
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   const session = await getAuthSession();

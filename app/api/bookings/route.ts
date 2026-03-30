@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
+
+export const dynamic = 'force-dynamic'
 import Booking from '@/lib/models/Booking';
 import Room from '@/lib/models/Room';
 import { sendBookingEmails } from '@/lib/email';
