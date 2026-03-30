@@ -146,7 +146,8 @@ export default function AdminContent() {
         await checkAuth()
       } else {
         const data = await res.json()
-        setError(data.message || 'Login failed')
+        const errorMessage = data.error ? `${data.message}: ${data.error}` : (data.message || 'Login failed')
+        setError(errorMessage)
       }
     } catch (err) {
       setError('Connection error')

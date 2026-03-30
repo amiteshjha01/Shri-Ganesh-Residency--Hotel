@@ -47,34 +47,52 @@ async function seedInitialData() {
 
 export async function POST(req: NextRequest) {
   try {
-    await connectDB();
-    await seedInitialData();
+    console.log('--- LOGIN PIPELINE START ---');
     
-    const { email, password } = await req.json();
+    console.log('Step 1: Connecting to Database...');
+    const db = await connectDB();
+    if (!db) {
+       console.error('Database connection failed: MONGO_URI likely missing');
+       return NextResponse.json({ message: 'Database connectivity absent' }, { status: 500 });
+    }
+    console.log('Step 1: Successful');
+    
+    console.log('Step 2: Executing Seed Lifecycle...');
+    await seedInitialData();
+    console.log('Step 2: Successful');
+    
+    const body = await req.json();
+    const { email, password } = body;
 
     if (!email || !password) {
+      console.warn('Login attempt aborted: Field requirements unmet');
       return NextResponse.json({ message: 'Missing email or password' }, { status: 400 });
     }
 
-    console.log(`Login attempt for: ${email}`);
-
+    console.log(`Step 3: Identity Search for: ${email}`);
     const user = await User.findOne({ email: email.toLowerCase().trim() });
+    
     if (!user) {
-      console.log(`User not found: ${email}`);
+      console.error(`Step 3: Failure - User ${email} not found in directory`);
       return NextResponse.json({ message: 'Invalid credentials - identity unknown' }, { status: 401 });
     }
+    console.log('Step 3: Successful');
 
+    console.log('Step 4: Cryptographic Key Verification...');
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      console.log(`Invalid password for: ${email}`);
+      console.error(`Step 4: Failure - Key mismatch for ${email}`);
       return NextResponse.json({ message: 'Invalid credentials - key mismatch' }, { status: 401 });
     }
+    console.log('Step 4: Successful');
 
+    console.log('Step 5: Generating Security Token...');
     const token = jwt.sign(
       { userId: user._id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
+    console.log('Step 5: Successful');
 
     const response = NextResponse.json({ 
       success: true, 
@@ -83,16 +101,22 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set('admin_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // Force secure in prod
       sameSite: 'strict',
-      maxAge: 86400, // 1 day
+      maxAge: 86400,
       path: '/'
     });
 
+    console.log('--- LOGIN PIPELINE TERMINATED SUCCESS ---');
     return response;
 
   } catch (error: any) {
-    console.error('Login error:', error);
-    return NextResponse.json({ message: 'Internal server error', error: error.message }, { status: 500 });
+    console.error('--- CRITICAL FAILURE IN LOGIN PIPELINE ---');
+    console.error('Origin Error:', error.message);
+    console.error('Stack Trace:', error.stack);
+    return NextResponse.json({ 
+      message: 'Internal server failure during authentication', 
+      error: error.message 
+    }, { status: 500 });
   }
 }
